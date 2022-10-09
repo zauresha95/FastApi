@@ -1,44 +1,117 @@
-#add this to main.py above the point where you initialized FastAPI
-#import
+from fastapi import FastAPI, Depends, status, Response
+import schemas
 import models
-from db import engine
+from check_data import Check_Client
+from database import Base, engine, SessionLocal
+from sqlalchemy.orm import Session
+import unittest
+import requests
+#This will create db if it doesn't alreasy exist 
 
-#create the database tables on app startup or reload
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(engine)
 
-from typing import Union
-from fastapi import FastAPI
-
+def get_session():
+    session = SessionLocal()
+    try:
+        yield session 
+    finally:
+        session.close()
+        
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.get("/{id}")
+def getItem(id:int, session: Session = Depends(get_session)):
+    item = session.query(models.Client).get(id)#.all()
+    return item
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/")
+def addItem(client:schemas.Client, response: Response, session: Session = Depends(get_session)):
+    if Check_Client.check_email(client.email) and Check_Client.check_phone(client.phone):
+        item = models.Client(
+                            name = client.name,
+                            email = client.email,
+                            phone = client.phone,
+                            created = client.created,
+                            updated = client.updated
+                            )
+        session.add (item)
+        session.commit()
+        session.refresh(item)
+        response.status_code = status.HTTP_201_CREATED
+        return item
+    else:
+        response.status_code = status.HTTP_406_NOT_ACCEPTABLE
+
+@app.put("/{id}")
+def updateItem(id:int,item:schemas.Client,response: Response, session: Session = Depends(get_session)):
+    itemObject = session.query(models.Client).get(id)
+    itemObject.name = item.name
+    itemObject.email = item.email
+    itemObject.phone = item.phone
+    itemObject.updated = item.updated
+    session.commit()
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return itemObject
 
 
-from db import SessionLocal
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@app.delete("/{id}")
+def deleteItem(id:int, response: Response, session = Depends(get_session)):
+    itemObject = session.query(models.Client).get(id)
+    session.delete(itemObject)
+    session.commit()
+    session.close()
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return 'Item was deleted'
 
-"""
-So that FastAPI knows that it has to treat a variable as a dependency, we will import Depends
-"""
-from fastapi import Depends
-#import crud to give access to the operations that we defined
-import crud
-from sqlalchemy.orm import Session
 
-#define endpoint
-@app.post("/create_client")
-def create_client(name:str, email:str, phone:str, db:Session = Depends(get_db)):
-    client = crud.create_client(db=db, name=name, email=email, phone=phone)
-##return object created
-    return {"client": client}
+
+
+class TestApp(unittest.TestCase):
+   
+    def setUp(self):
+        self.data = {
+                    "name": "zaure",
+                    "email": "zaure@mail.ru",
+                    "phone": 79991234567,
+                    "created": "2022-10-09",
+                    "updated": "2022-10-09"
+                    }
+        self.data2 = {
+                    "name": "saule",
+                    "email": "zaure@mail.ru",
+                    "phone": 79991234567,
+                    "created": "2022-10-09",
+                    "updated": "2022-10-09"
+                    }
+
+    # def tearDown(self):
+    #     self.widget.dispose()
+
+    def test_1_post(self):
+        res = requests.post("http://127.0.0.1:8000/", json = self.data)
+        id = res.json().get('id')
+        name = res.json().get('name')
+        self.assertEqual(id,1)
+        self.assertEqual(name,'zaure')
+        self.assertEqual(res.status_code,201)
+
+    def test_2_put(self):
+        res = requests.put("http://127.0.0.1:8000/1", json = self.data2)
+        #name = res.name
+        #self.assertEqual(name,'saule')
+        #print(res)
+        self.assertEqual(res.status_code,204)
+
+    def test_3_get(self):
+        res = requests.get("http://127.0.0.1:8000/1")
+        name = res.json().get('name')
+        self.assertEqual(name,'saule')
+        self.assertEqual(res.status_code,200)
+
+    def test_4_delete(self):
+        res = requests.delete("http://127.0.0.1:8000/1")
+        self.assertEqual(res.status_code,204)
+
+
+if __name__ == '__main__':
+    unittest.main()
