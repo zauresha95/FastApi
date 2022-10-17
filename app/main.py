@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Depends, status, Response
-import schemas
-import models
-from check_data import Check_Client
-from database import Base, engine, SessionLocal
+from fastapi.responses import JSONResponse
+from FastApi.app import schemas
+from FastApi.app import models
+from FastApi.app.check_data import Check_Client
+from FastApi.app.database import Base, engine, SessionLocal
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 import unittest
 import requests
 #This will create db if it doesn't alreasy exist 
-
 Base.metadata.create_all(engine)
 
 def get_session():
@@ -21,47 +22,60 @@ app = FastAPI()
 
 @app.get("/{id}")
 def getItem(id:int, session: Session = Depends(get_session)):
+    
     item = session.query(models.Client).get(id)#.all()
-    return item
+    if item:
+        return item
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "Record not found"})
 
 @app.post("/")
 def addItem(client:schemas.Client, response: Response, session: Session = Depends(get_session)):
-    if Check_Client.check_email(client.email) and Check_Client.check_phone(client.phone):
-        item = models.Client(
-                            name = client.name,
-                            email = client.email,
-                            phone = client.phone,
-                            created = client.created,
-                            updated = client.updated
-                            )
-        session.add (item)
-        session.commit()
-        session.refresh(item)
-        response.status_code = status.HTTP_201_CREATED
-        return item
-    else:
-        response.status_code = status.HTTP_406_NOT_ACCEPTABLE
-
+    try:
+        if Check_Client.check_email(client.email) :#and Check_Client.check_phone(client.phone):
+            item = models.Client(
+                                name = client.name,
+                                email = client.email,
+                                phone = client.phone,
+                                created = client.created,
+                                updated = client.updated
+                                )
+            session.add (item)
+            session.commit()
+            session.refresh(item)
+            response.status_code = status.HTTP_201_CREATED
+            return item
+        else:
+            return JSONResponse(status_code=status.HTTP_406_NOT_ACCEPTABLE, content={"error": "Data is not correct"})
+    except IntegrityError:
+        session.rollback()
+        return JSONResponse(status_code=status.HTTP_406_NOT_ACCEPTABLE, content={"error": 'IntegrityError'})
+    
 @app.put("/{id}")
 def updateItem(id:int,item:schemas.Client,response: Response, session: Session = Depends(get_session)):
     itemObject = session.query(models.Client).get(id)
-    itemObject.name = item.name
-    itemObject.email = item.email
-    itemObject.phone = item.phone
-    itemObject.updated = item.updated
-    session.commit()
-    response.status_code = status.HTTP_204_NO_CONTENT
-    return itemObject
-
+    print(itemObject)
+    if itemObject is not None:
+        itemObject.name = item.name
+        itemObject.email = item.email
+        itemObject.phone = item.phone
+        #itemObject.updated = item.updated
+        session.commit()
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return itemObject
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "Record not found"})
 
 @app.delete("/{id}")
 def deleteItem(id:int, response: Response, session = Depends(get_session)):
     itemObject = session.query(models.Client).get(id)
-    session.delete(itemObject)
-    session.commit()
-    session.close()
-    response.status_code = status.HTTP_204_NO_CONTENT
-    return 'Item was deleted'
+    if itemObject is not None:
+        itemObject = session.query(models.Client).get(id)
+        session.delete(itemObject)
+        session.commit()
+        session.close()
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return 'Item was deleted'
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "Record not found"})
+
 
 
 
@@ -115,3 +129,4 @@ class TestApp(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    #uvicorn main:app --reload

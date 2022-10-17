@@ -15,16 +15,16 @@ data2 = {
   "updated": "2022-10-09"
 }
 
-# res = requests.post("http://127.0.0.1:8000/", json = data)
-# id = res.json().get('id')
-# print(id)
+res = requests.post("http://127.0.0.1:8004/", json = data)
+#id = res.json().get('id')
 # print('post',res.json(),res.status_code)
 
-# res = requests.put(f"http://127.0.0.1:8000/{id}", json = data2)
-# print('put',res,res.status_code)
+# res = requests.put(f"http://127.0.0.1:8004/1", json = data2)
+# print('put',res,res.status_code,res._content)
 
-# res = requests.get(f"http://127.0.0.1:8000/{id}")
+# id = 1
+# res = requests.get(f"http://127.0.0.1:8004/{id}")
 # print('get',res.json(),res.status_code)
 
-res = requests.delete("http://127.0.0.1:8000/1")
-print('delete',res.json(),res.status_code)
+# res = requests.delete("http://127.0.0.1:8000/1")
+# print('delete',res.json(),res.status_code)

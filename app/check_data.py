@@ -1,6 +1,6 @@
 
-import schemas
-import models
+import FastApi.app.schemas
+import FastApi.app.models
 import re
 class Check_Client():
     def check_email(email: str):
@@ -9,6 +9,6 @@ class Check_Client():
         return False
 
     def check_phone(phone: int):
-        if re.match('7[0-9]+',str(phone)) and len(str(phone)) == 11:
+        if re.match('7\d{10}',str(phone)):
             return True
         return False  
