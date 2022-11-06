@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends, status, Response
 from fastapi.responses import JSONResponse
-from FastApi.app import schemas
-from FastApi.app import models
-from FastApi.app.check_data import Check_Client
-from FastApi.app.database import Base, engine, SessionLocal
+from app import schemas
+from app import models
+from app.check_data import Check_Client
+from app.database import Base, engine, SessionLocal
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import unittest
