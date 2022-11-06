@@ -1,6 +1,3 @@
-
-import FastApi.app.schemas
-import FastApi.app.models
 import re
 class Check_Client():
     def check_email(email: str):

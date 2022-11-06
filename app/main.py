@@ -26,7 +26,7 @@ def getItem(id:int, session: Session = Depends(get_session)):
     item = session.query(models.Client).get(id)#.all()
     if item:
         return item
-    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "Record not found"})
+    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Record not found"})
 
 @app.post("/")
 def addItem(client:schemas.Client, response: Response, session: Session = Depends(get_session)):
@@ -45,10 +45,10 @@ def addItem(client:schemas.Client, response: Response, session: Session = Depend
             response.status_code = status.HTTP_201_CREATED
             return item
         else:
-            return JSONResponse(status_code=status.HTTP_406_NOT_ACCEPTABLE, content={"error": "Data is not correct"})
+            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": "Data is not correct"})
     except IntegrityError:
         session.rollback()
-        return JSONResponse(status_code=status.HTTP_406_NOT_ACCEPTABLE, content={"error": 'IntegrityError'})
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": 'IntegrityError'})
     
 @app.put("/{id}")
 def updateItem(id:int,item:schemas.Client,response: Response, session: Session = Depends(get_session)):
