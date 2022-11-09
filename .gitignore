@@ -1,3 +1,7 @@
 ### Python ###
 __pycache__/
 env/
+lessons/
+.vscode/
+launch.json
+*sqlite

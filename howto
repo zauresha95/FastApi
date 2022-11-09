@@ -1,4 +1,4 @@
--- run uvicorn main:app
--- reload uvicorn main:app --reload
---uvicorn FastApi.app.main:app --reload --port 8003
+-- run: uvicorn main:app
+-- reload: uvicorn main:app --reload
+-- reload new port: uvicorn FastApi.app.main:app --reload --port 8003
 -- kill 
