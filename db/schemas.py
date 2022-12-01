@@ -21,3 +21,10 @@ class Client (BaseModel):
             raise ValueError('must be phone format')
         return int(str(v).title())
     
+
+class Client_Info(BaseModel):
+    id: str
+    doc_num: str
+    doc_type: int
+    created: date = datetime.now()
+    updated: date = datetime.now()

@@ -1,16 +1,13 @@
 from datetime import datetime
 from fastapi import FastAPI, Depends, status, Response
 from fastapi.responses import JSONResponse
-from server.db import schemas
-from server.db import models
-from server.db.database import Base, engine, get_session
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import uvicorn
-import sys,os
-# root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# sys.path.append(root_folder)
-# print(root_folder)
+from context import db
+from db import schemas, tables
+from db.database import Base, engine, get_session
+
 #This will create db if it doesn't alreasy exist 
 Base.metadata.create_all(engine)
         
@@ -19,7 +16,7 @@ app = FastAPI()
 @app.get("/{id}")
 def getItem(id:int, session: Session = Depends(get_session)):
     try:
-        item = session.query(models.Client).get(id)#.all()
+        item = session.query(tables.Client).get(id)#.all()
         if item:
             return item
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Record not found"})
@@ -30,7 +27,7 @@ def getItem(id:int, session: Session = Depends(get_session)):
 @app.post("/")
 def addItem(client:schemas.Client, response: Response, session: Session = Depends(get_session)):
     try:
-        item = models.Client(
+        item = tables.Client(
                                 name = client.name,
                                 email = client.email,
                                 phone = client.phone
@@ -53,7 +50,7 @@ def addItem(client:schemas.Client, response: Response, session: Session = Depend
 @app.put("/{id}")
 def updateItem(id:int,item:schemas.Client,response: Response, session: Session = Depends(get_session)):
     try:
-        itemObject = session.query(models.Client).get(id)
+        itemObject = session.query(tables.Client).get(id)
         if itemObject is not None:
             itemObject.name = item.name
             itemObject.email = item.email
@@ -71,7 +68,7 @@ def updateItem(id:int,item:schemas.Client,response: Response, session: Session =
 @app.patch("/{id}")
 def updatePartItem(id:int,item:schemas.Client,response: Response, session: Session = Depends(get_session)):
     try:
-        itemObject = session.query(models.Client).get(id)
+        itemObject = session.query(tables.Client).get(id)
         if not itemObject:
             return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": ''})
         item_data = item.dict(exclude_unset=True)
@@ -84,17 +81,17 @@ def updatePartItem(id:int,item:schemas.Client,response: Response, session: Sessi
 
         response.status_code = status.HTTP_204_NO_CONTENT
         return itemObject
-    except:
+    except TypeError: # TODO 
         session.rollback()
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": ''})
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": ''}) # TODO 
 
 
 @app.delete("/{id}")
 def deleteItem(id:int, response: Response, session = Depends(get_session)):
     try:
-        itemObject = session.query(models.Client).get(id)
+        itemObject = session.query(tables.Client).get(id)
         if itemObject is not None:
-            itemObject = session.query(models.Client).get(id)
+            itemObject = session.query(tables.Client).get(id)
             session.delete(itemObject)
             session.commit()
             session.close()
@@ -106,6 +103,6 @@ def deleteItem(id:int, response: Response, session = Depends(get_session)):
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"error": ''})
 
 if __name__ == '__main__':
-    uvicorn.run("server.main:app", host="127.0.0.1", port=8005, reload=True)
+    uvicorn.run("server.main:app", host="127.0.0.1", port=8000, reload=True)
     # log_level="debug", 
     #            workers=1, limit_concurrency=1, limit_max_requests=1)
